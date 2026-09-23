@@ -1,6 +1,6 @@
 """Internal contracts; dataset field mapping belongs in the import adapter."""
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import date, datetime
 from typing import Literal
 
 
@@ -36,6 +36,11 @@ class Event:
     audience_roles: tuple[str, ...]
     audience_grades: tuple[str, ...]
     effects: tuple[SkillEffect, ...]
+    mandatory: bool = False
+    prerequisites: dict[str, int] = field(default_factory=dict)
+    format: str = "self_paced"
+    upcoming_sessions: tuple[date, ...] = ()
+    repeatable: bool = False
 
 
 @dataclass(frozen=True)
@@ -43,7 +48,7 @@ class Participation:
     participation_id: str
     employee_id: str
     event_id: str
-    status: Literal["completed", "missed", "declined", "registered"]
+    status: Literal["completed", "missed", "declined", "registered", "in_progress", "dropped", "no_show", "overdue"]
     occurred_at: datetime
 
 
@@ -53,15 +58,17 @@ class GradeRequirement:
     grade: str
     next_grade: str | None
     required_skills: dict[str, int]
+    critical_skills: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
 class RecommendationContext:
     employee: Employee
-    target: GradeRequirement
+    target: GradeRequirement | None
     history: tuple[Participation, ...]
     candidates: tuple[Event, ...]
     locale: Literal["ru", "kk", "en"]
+    as_of: date | None = None
 
 
 @dataclass(frozen=True)
@@ -82,6 +89,12 @@ class RankedRecommendation:
     skill_gaps: dict[str, int]
     expected_gains: dict[str, int]
     reason_codes: tuple[str, ...]
+    current_grade: str = ""
+    current_levels: dict[str, int] = field(default_factory=dict)
+    required_levels: dict[str, int] = field(default_factory=dict)
+    history_summary: dict[str, int] = field(default_factory=dict)
+    readiness_before: float | None = None
+    readiness_after: float | None = None
 
 
 @dataclass(frozen=True)
@@ -90,3 +103,4 @@ class ExplanationContext:
 
     locale: Literal["ru", "kk", "en"]
     recommendations: tuple[RankedRecommendation, ...]
+    skill_names: dict[str, str] = field(default_factory=dict)
