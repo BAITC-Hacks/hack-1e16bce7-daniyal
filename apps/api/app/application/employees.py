@@ -29,7 +29,8 @@ def employee_history(session: Session, employee_id: str, limit: int, offset: int
         ActivityHistory.employee_id == employee_id).order_by(
         ActivityHistory.date.desc(), ActivityHistory.record_id.desc()).limit(limit).offset(offset)).all()
     fields = ("record_id", "employee_id", "event_id", "date", "due_date", "status",
-              "completion_pct", "score", "feedback_rating", "assigned_by")
+              "completion_pct", "score", "feedback_rating", "assigned_by",
+              "completed_on", "session_date", "simulated")
     return {"items": [{**{field: getattr(row, field) for field in fields},
                        "event_title": title, "event_type": kind} for row, title, kind in rows],
             "total": session.scalar(select(func.count()).select_from(ActivityHistory).where(

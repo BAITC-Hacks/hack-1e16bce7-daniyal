@@ -5,6 +5,26 @@ const id = '[^/]+';
 const getRoutes = [ /^health$/, /^ready$/, /^auth\/me$/, /^auth\/demo\/employees$/, new RegExp(`^employees/${id}(?:/(?:skills|trajectory|activities))?$`), /^events$/, new RegExp(`^events/${id}$`), /^hr\/(?:dashboard|skill-gaps|employees|activity-stats|recommendation-coverage)$/ ];
 const postRoutes = [ /^auth\/demo\/(?:employee|hr)$/, /^datasets\/import$/, new RegExp(`^employees/${id}/recommendations$`), new RegExp(`^employees/${id}/activities/${id}/complete$`) ];
 const headers = { 'Cache-Control': 'no-store' };
+const maxImportBytes = 42 * 1024 * 1024;
+
+async function importBody(request: NextRequest): Promise<ArrayBuffer | null> {
+  if (Number(request.headers.get('content-length') || 0) > maxImportBytes) return null;
+  const reader = request.body?.getReader();
+  if (!reader) return new ArrayBuffer(0);
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > maxImportBytes) { await reader.cancel(); return null; }
+    chunks.push(value);
+  }
+  const body = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
+  return body.buffer;
+}
 
 function sameOrigin(request: NextRequest) {
   try {
@@ -33,14 +53,18 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   const isLogin = route === 'auth/demo/employee' || route === 'auth/demo/hr';
   if (!['health', 'ready', 'auth/demo/employees'].includes(route) && !isLogin && !token) return NextResponse.json({ detail: 'Unauthorized' }, { status: 401, headers });
   try {
+    const payload = request.method === 'POST' ? (route === 'datasets/import' ? await importBody(request) : await request.arrayBuffer()) : undefined;
+    if (payload === null) return NextResponse.json({ detail: 'Размер запроса превышает 42 МБ.' }, { status: 413, headers });
     const upstreamHeaders = new Headers();
+    const idempotencyKey = request.headers.get('idempotency-key');
+    if (idempotencyKey && /\/complete$/.test(route)) upstreamHeaders.set('Idempotency-Key', idempotencyKey);
     if (token) upstreamHeaders.set('Authorization', `Bearer ${token}`);
     const contentType = request.headers.get('content-type');
     if (contentType) upstreamHeaders.set('Content-Type', contentType);
     const base = (process.env.API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
     const upstream = await fetch(`${base}/api/v1/${path.map(encodeURIComponent).join('/')}${request.nextUrl.search}`, {
       method: request.method, headers: upstreamHeaders,
-      body: request.method === 'POST' ? await request.arrayBuffer() : undefined,
+      body: payload,
       cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(route === 'datasets/import' ? 55000 : 12000),
     });
     const body = await upstream.json();

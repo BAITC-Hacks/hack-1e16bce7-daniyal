@@ -53,10 +53,13 @@ test('session cookie forwards server authorization; completion refresh returns s
   assert.equal((await (await request('auth/me', { headers: { cookie } })).json()).user.employee_id, 'JURY-42');
   assert.equal((await request('hr/dashboard', { headers: { cookie } })).status, 403);
   assert.equal((await request('employees/another-id', { headers: { cookie } })).status, 403);
-  const complete = await request('employees/JURY-42/activities/EV_014/complete', post({}, cookie));
+  assert.equal((await request('employees/JURY-42/activities/EV_014/complete', post({}, cookie))).status, 422);
+  const completionRequest = post({}, cookie);
+  completionRequest.headers['Idempotency-Key'] = 'proxy-test-completion';
+  const complete = await request('employees/JURY-42/activities/EV_014/complete', completionRequest);
   assert.equal(complete.status, 200);
   assert.equal((await complete.json()).changes[0].after, 3);
-  const again = await (await request('employees/JURY-42/activities/EV_014/complete', post({}, cookie))).json();
+  const again = await (await request('employees/JURY-42/activities/EV_014/complete', completionRequest)).json();
   assert.equal(again.already_completed, true);
   assert.deepEqual(again.changes, []);
   const recommendations = await request('employees/JURY-42/recommendations', post({ language: 'ru' }, cookie));

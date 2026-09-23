@@ -8,6 +8,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.system import router
 from app.api.business import router as business_router
+from app.api.career import router as career_router
+from app.api.catalog import router as catalog_router
+from app.api.completion import router as completion_router
+from app.api.datasets import router as datasets_router
+from app.api.upload_limit import ImportBodyLimit
 from app.config import Settings
 from app.infrastructure.database import Database
 
@@ -48,6 +53,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     application.include_router(router)
     application.include_router(business_router)
+    application.include_router(career_router)
+    application.include_router(catalog_router)
+    application.include_router(completion_router)
+    application.include_router(datasets_router)
+    application.add_middleware(ImportBodyLimit)
     return application
 
 

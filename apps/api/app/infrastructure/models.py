@@ -1,7 +1,7 @@
 """Persistent dataset entities. JSON columns retain source arrays and metadata."""
 import datetime as dt
 
-from sqlalchemy import JSON, Boolean, CheckConstraint, Date, ForeignKey, ForeignKeyConstraint, String, Text
+from sqlalchemy import JSON, Boolean, CheckConstraint, Date, ForeignKey, ForeignKeyConstraint, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database import Base
@@ -131,6 +131,9 @@ class ActivityHistory(Base):
     feedback_rating: Mapped[int | None]
     assigned_by: Mapped[str]
     effects_applied: Mapped[bool] = mapped_column(default=False)
+    completed_on: Mapped[dt.date | None] = mapped_column(Date)
+    simulated: Mapped[bool] = mapped_column(default=False, server_default=false())
+    session_date: Mapped[dt.date | None] = mapped_column(Date)
     __table_args__ = (
         CheckConstraint("status IN ('completed', 'in_progress', 'dropped', 'no_show', 'declined', 'overdue')"),
         CheckConstraint("completion_pct BETWEEN 0 AND 100"),
@@ -138,3 +141,19 @@ class ActivityHistory(Base):
         CheckConstraint("feedback_rating BETWEEN 1 AND 5"),
         CheckConstraint("assigned_by IN ('self', 'manager', 'hr')"),
     )
+
+
+class DatasetImportBatch(Base):
+    __tablename__ = "dataset_import_batches"
+    fingerprint: Mapped[str] = mapped_column(String(64), primary_key=True)
+    counts: Mapped[dict] = mapped_column(JSON)
+
+
+class CompletionReceipt(Base):
+    __tablename__ = "completion_receipts"
+    employee_id: Mapped[str] = mapped_column(ForeignKey("employees.employee_id"), primary_key=True)
+    idempotency_key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    event_id: Mapped[str] = mapped_column(ForeignKey("events.event_id"))
+    request_payload: Mapped[dict] = mapped_column(JSON)
+    record_id: Mapped[str] = mapped_column(ForeignKey("activity_history.record_id"))
+    result: Mapped[dict] = mapped_column(JSON)

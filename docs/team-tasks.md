@@ -178,6 +178,11 @@ activity_history.csv
 
 ## 2. Backend Developer
 
+**Дополнение:** реализованы API списка HR и каталога, HTTP initial/append импорт
+новых сотрудников и транзакционный completion. [Контракты](backend-workflows.md).
+Расчёты траектории, рекомендаций и HR-метрик ещё требуют подключения AI-модуля.
+
+
 ### Стек и ответственность
 
 Python, FastAPI, PostgreSQL, SQLAlchemy, Pydantic, Alembic, Pytest.

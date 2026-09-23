@@ -36,6 +36,7 @@ export function fixtureApi() {
     if (path.endsWith('/recommendations')) return send(completed ? [] : [{ event_id: 'EV_014', title: 'System Design Workshop', priority: 1, score: 0.87, skills: [{ ...skill, gain: 1, predicted_level: 3 }], career_readiness_before: 68, career_readiness_after: 76, reason: 'Для перехода с Middle на Senior требуется System Design 4, текущий уровень — 2. Практикум повышает его до 3. Две предыдущие технические активности завершены в срок; похожие выступления вы пропускали.', explanation_source: 'fallback' }]);
     if (path === 'events/EV_014') return send({ event_id: 'EV_014', title: 'System Design Workshop', description: 'Практикум по архитектуре высоконагруженных систем с разбором решения и обратной связью.', type: 'workshop', duration_hours: 4, develops_skills: [{ skill_id: skill.skill_id, name: skill.name, gain: 1, max_level: 4 }] });
     if (path.endsWith('/complete')) {
+      if (!request.headers['idempotency-key']) return send({ detail: 'Idempotency-Key required' }, 422);
       if (user.role !== 'employee') return send({ detail: 'Forbidden' }, 403);
       const before = completed;
       completed = true;

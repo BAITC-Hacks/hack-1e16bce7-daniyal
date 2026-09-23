@@ -5,13 +5,12 @@
 и импорт. Расчёты readiness, scoring, gain и выбор рекомендаций в браузере отсутствуют.
 Старые localStorage-демо и ручная оценка навыков удалены.
 
-**Статус интеграции:** во время frontend-разработки в рабочем дереве появились
-реальные FastAPI-контракты demo-входа, auth/me, профиля, навыков и истории.
-Фронтенд адаптирован к `app/api/business.py` и `schemas.py`: HR входит с паролем,
-сотрудник по ID, навыки читаются из items/level, история — с пагинацией и event_title.
-Эти параллельные backend-изменения не входят в реализацию фронтенда.
-Траектория, рекомендации, completion, HR-аналитика и HTTP-импорт ещё ожидают backend;
-для них контракт ниже остаётся предложением. Production UI не подставляет фикстуры.
+**Статус интеграции:** профиль, траектория, рекомендации, каталог, completion,
+HR-аналитика и импорт подключены к FastAPI. Подробности актуального сквозного
+сценария, дополнительных query-параметров и метрик — в
+[career-workspace.md](career-workspace.md). Production UI не подставляет фикстуры.
+При 404 отсутствующего маршрута появляется сообщение о разработке; действующие
+маршруты запрашиваются без предварительной блокировки.
 
 ## HTTP
 
@@ -35,9 +34,9 @@ Readiness измеряется в процентах 0–100; уровни на�
 | GET `events/{id}` | `Event`: event_id, title, description, type, duration_hours (optional/nullable), develops_skills[] |
 | GET `employees/{id}/activities?limit=50&offset=0` | Реальный `{items, total, limit, offset}`; event_title → title; кнопки страниц в UI |
 | POST `employees/{id}/activities/{event_id}/complete` | `{}` → `Completion` с before/after, already_completed и changes[] |
-| GET `hr/dashboard` | `Dashboard`: employee_count, average_readiness, without_recommendations, completed_activities, as_of_date |
+| GET `hr/dashboard` | `Dashboard`: employee_count, average_readiness, without_recommendations, completed_activities, active_this_month, as_of_date |
 | GET `hr/skill-gaps` | `SkillGap[]`: skill_id, name, employee_count |
-| GET `hr/employees` | `Employee[]`, полный разрешённый список; поиск/фильтры UI по этому списку |
+| GET `hr/employees?include_readiness=true` | `Employee[]`, полный разрешённый список; поиск/фильтры UI по этому списку |
 | GET `hr/activity-stats` | `ActivityStat[]`: event_id, title, participant_count, statuses (все 6 ключей, включая нули) |
 | GET `hr/recommendation-coverage` | `Employee[]` только сотрудников без рекомендованного шага |
 | POST `datasets/import` | multipart (см. ниже) → `ImportResult` |
@@ -46,7 +45,7 @@ Readiness измеряется в процентах 0–100; уровни на�
 число завершённых **участий**; participant_count — число уникальных участников события;
 statuses — число записей участия по статусам. Средняя readiness рассчитывается сервером
 по сотрудникам, для которых есть следующий грейд и расчёт. При отсутствии таких
-сотрудников — null. Completion rate и KPI «активные» не отображаются: правила не согласованы.
+сотрудников — null. KPI «Активны в этом месяце» и распределение статусов реализованы; определения описаны в career-workspace.md.
 
 Статусы импортированной истории и аналитики: completed, in_progress, dropped,
 no_show, declined, overdue. Устаревшие missed/registered не используются; схема соответствует разделу 1.6 задач.
@@ -92,9 +91,9 @@ UI показывает прогноз до выполнения, не начи�
 данных не удалось, сообщение об успехе остаётся, соответствующая секция показывает
 ошибку с повтором запроса. Уже учтённое выполнение не должно давать повторный gain.
 
-Идентичность completion в P0: пара employee/event. Повторные участия (EV_036)
-потребуют отдельного согласованного participation/record_id и новой версии контракта;
-фронтенд не выдумывает идентификатор участия и не предлагает повторное прохождение.
+Completion требует Idempotency-Key; UI сохраняет ключ при повторе запроса. Для
+повторяемых активностей выбирается record_id или session_date по контракту backend.
+Демо-завершение будущей сессии явно обозначено в диалоге.
 HR-профиль доступен только для чтения, без кнопки завершения.
 
 ### Импорт
@@ -108,7 +107,7 @@ multipart поля:
 meta/employees, meta/events или meta/skills/role_profiles — фронтенд её не преобразует.
 UI проверяет наличие, лимит 10 МБ на файл и синтаксис JSON; семантика, CSV, ссылки
 и атомарность — серверная валидация. Backend должен отдельно ограничивать размер загрузки.
-Режим append — предлагаемый контракт для ещё не реализованного добавочного импорта.
+Режим append реализован с атомарной проверкой связей и идемпотентностью пакета.
 
 ```json
 {"status":"imported","employees":200,"events":40,"skills":60,"history_records":2743}
@@ -160,4 +159,4 @@ API_URL=http://127.0.0.1:18001 npm run dev -- --port 18002
 Пароль HR исключительно для fixture API: `fixture-hr`; реальный пароль задаётся на backend.
 Fixture находится только в tests, импортируется исключительно тестами и не
 является production fallback. После запуска доступны оба режима demo-входа.
-Полный сценарий с настоящим FastAPI остаётся проверкой этапа интеграции.
+Полный сценарий с настоящим FastAPI и SQLite проверяется test_career_api.py.

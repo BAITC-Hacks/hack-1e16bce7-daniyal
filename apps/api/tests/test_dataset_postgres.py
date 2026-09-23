@@ -56,6 +56,7 @@ def test_postgres_migrations_and_concurrent_import(monkeypatch):
                 assert client.get("/api/v1/employees/E0173" + suffix, headers=employee_headers).status_code == 200
                 assert client.get("/api/v1/employees/E0001" + suffix, headers=employee_headers).status_code == 403
                 assert client.get("/api/v1/employees/E0001" + suffix, headers=hr_headers).status_code == 200
+            verify_workflows(client, dataset, hr_headers)
         command.downgrade(config, "base")
         command.upgrade(config, "head")
         command.check(config)
@@ -64,3 +65,49 @@ def test_postgres_migrations_and_concurrent_import(monkeypatch):
         with admin.begin() as connection:
             connection.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
         admin.dispose()
+
+
+def verify_workflows(client, dataset, hr_headers):
+    """Exercise real HTTP uploads and completion against the migrated PostgreSQL schema."""
+    import json
+    from app.domain.progress import apply_skill_effects
+    from app.domain.models import SkillEffect
+    event = next(e for e in dataset.events.events if not e.mandatory and e.format == "self_paced"
+                 and any(s.max_level > e.prerequisites.get(s.skill_id, 0) and s.gain > 0 for s in e.develops_skills))
+    person = next(e for e in dataset.employees.employees if e.role in event.target_roles and e.grade in event.target_grades)
+    person = person.model_copy(deep=True)
+    person.employee_id = "jury-integration"
+    person.manager_id = None
+    person.skills = dict(event.prerequisites)
+    def upload(person):
+        return client.post("/api/v1/datasets/import", headers=hr_headers, data={"mode": "append"}, files={
+            "employees.json": ("employees.json", json.dumps({"meta": dataset.employees.meta.model_dump(mode="json"),
+                "employees": [person.model_dump(mode="json")]}).encode(), "application/json"),
+            "activity_history.csv": ("activity_history.csv", b"record_id,employee_id,event_id,date,due_date,status,completion_pct,score,feedback_rating,assigned_by\n", "text/csv")})
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(lambda _: upload(person), range(2)))
+    assert [r.status_code for r in results] == [200, 200]
+    assert sorted(r.json()["status"] for r in results) == ["imported", "unchanged"]
+    assert len(client.get("/api/v1/hr/employees", headers=hr_headers).json()) == 201
+    assert len(client.get("/api/v1/events", headers=hr_headers).json()) == 40
+    token = client.post("/api/v1/auth/demo/employee", json={"employee_id": person.employee_id}).json()["access_token"]
+    headers = {"Authorization": "Bearer " + token, "Idempotency-Key": "same-concurrent-request"}
+    path = f"/api/v1/employees/{person.employee_id}"
+    before = {s["skill_id"]: s["level"] for s in client.get(path + "/skills", headers=headers).json()["items"]}
+    def complete(_):
+        return client.post(path + f"/activities/{event.event_id}/complete", json={}, headers=headers)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        responses = list(executor.map(complete, range(2)))
+    assert [r.status_code for r in responses] == [200, 200]
+    assert sorted(r.json()["already_completed"] for r in responses) == [False, True]
+    assert len({r.json()["record_id"] for r in responses}) == 1
+    expected = apply_skill_effects(before, [SkillEffect(**s.model_dump()) for s in event.develops_skills])
+    other = person.model_copy(deep=True)
+    other.employee_id = "jury-concurrent-append"
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(upload, other), executor.submit(complete, 0)]
+        assert all(f.result().status_code == 200 for f in futures)
+    assert upload(person).json()["status"] == "unchanged"
+    after = {s["skill_id"]: s["level"] for s in client.get(path + "/skills", headers=headers).json()["items"]}
+    assert after == expected and after != before
+    assert client.get(path + "/activities", headers=headers).json()["total"] == 1

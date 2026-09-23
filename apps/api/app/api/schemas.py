@@ -80,6 +80,9 @@ class ActivityResponse(BaseModel):
     score: int | None
     feedback_rating: int | None
     assigned_by: Literal["self", "manager", "hr"]
+    completed_on: dt.date | None
+    session_date: dt.date | None
+    simulated: bool
     event_title: str
     event_type: str
 
