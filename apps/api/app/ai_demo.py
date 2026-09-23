@@ -9,7 +9,7 @@ import sys
 from app.domain.models import ExplanationContext
 from app.domain.ranking import DeterministicRecommendationEngine, career_readiness
 from app.infrastructure.ai_dataset import DatasetSnapshot
-from app.infrastructure.explanations import ExplanationSettings, OpenAIExplanationProvider
+from app.infrastructure.explanations import ExplanationSettings, explanation_provider
 
 
 async def run(args):
@@ -19,7 +19,7 @@ async def run(args):
     settings = ExplanationSettings()
     if not args.live:
         settings = settings.model_copy(update={"llm_enabled": False})
-    provider = OpenAIExplanationProvider(settings)
+    provider = explanation_provider(settings)
     explained = await provider.explain_with_metadata(ExplanationContext(context.locale, ranked, dataset.skill_names))
     print(json.dumps({
         "employee_id": args.employee, "locale": context.locale,
@@ -27,7 +27,7 @@ async def run(args):
         "explanation_source": explained.source, "fallback_reason": explained.fallback_reason,
         "recommendations": [{**asdict(item), "explanation": explained.texts[item.event_id]} for item in ranked],
     }, ensure_ascii=False, indent=2))
-    if args.live and ranked and explained.source != "openai":
+    if args.live and ranked and explained.source == "template":
         raise SystemExit(2)  # A live smoke test must not silently pass on fallback.
 
 
@@ -38,7 +38,7 @@ def main():
     parser.add_argument("--dataset", type=Path, default=Path(__file__).resolve().parents[3] / "dataset")
     parser.add_argument("--employee", default="E0028")
     parser.add_argument("--locale", choices=("ru", "kk", "en"))
-    parser.add_argument("--live", action="store_true", help="Call OpenAI; default is offline")
+    parser.add_argument("--live", action="store_true", help="Call configured LLM provider; default is offline")
     args = parser.parse_args()
     try:
         asyncio.run(run(args))

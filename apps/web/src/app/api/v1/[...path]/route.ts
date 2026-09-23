@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const cookieName = 'cq_session';
 const id = '[^/]+';
-const getRoutes = [ /^health$/, /^ready$/, /^auth\/me$/, /^auth\/demo\/employees$/, new RegExp(`^employees/${id}(?:/(?:skills|trajectory|activities))?$`), /^events$/, new RegExp(`^events/${id}$`), /^hr\/(?:dashboard|skill-gaps|employees|activity-stats|recommendation-coverage)$/ ];
-const postRoutes = [ /^auth\/demo\/(?:employee|hr)$/, /^datasets\/import$/, new RegExp(`^employees/${id}/recommendations$`), new RegExp(`^employees/${id}/activities/${id}/complete$`) ];
+const getRoutes = [ /^health$/, /^ready$/, /^auth\/me$/, /^auth\/demo\/employees$/, /^employees$/, new RegExp(`^employees/${id}(?:/(?:skills|trajectory|activities))?$`), /^events$/, new RegExp(`^events/${id}$`), /^hr\/(?:dashboard|skill-gaps|employees|activity-stats|recommendation-coverage)$/ ];
+const postRoutes = [ /^auth\/demo\/(?:employee|hr)$/, /^datasets\/import$/, /^recommendations$/, new RegExp(`^employees/${id}/recommendations$`), new RegExp(`^employees/${id}/activities/${id}/complete$`) ];
 const headers = { 'Cache-Control': 'no-store' };
 const maxImportBytes = 42 * 1024 * 1024;
 
@@ -55,6 +55,16 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   try {
     const payload = request.method === 'POST' ? (route === 'datasets/import' ? await importBody(request) : await request.arrayBuffer()) : undefined;
     if (payload === null) return NextResponse.json({ detail: 'Размер запроса превышает 42 МБ.' }, { status: 413, headers });
+    if (route === 'recommendations' && payload) {
+      if (payload.byteLength > 4096) return NextResponse.json({ detail: 'Запрос слишком большой.' }, { status: 413, headers });
+      try {
+        const body = JSON.parse(new TextDecoder().decode(payload));
+        if (!body || typeof body.employee_id !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(body.employee_id)
+            || !['ru', 'kk', 'en'].includes(body.locale)) throw new Error('Invalid request');
+      } catch {
+        return NextResponse.json({ detail: 'Проверьте сотрудника и язык.' }, { status: 400, headers });
+      }
+    }
     const upstreamHeaders = new Headers();
     const idempotencyKey = request.headers.get('idempotency-key');
     if (idempotencyKey && /\/complete$/.test(route)) upstreamHeaders.set('Idempotency-Key', idempotencyKey);
@@ -65,7 +75,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     const upstream = await fetch(`${base}/api/v1/${path.map(encodeURIComponent).join('/')}${request.nextUrl.search}`, {
       method: request.method, headers: upstreamHeaders,
       body: payload,
-      cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(route === 'datasets/import' ? 55000 : 12000),
+      cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(route === 'recommendations' ? 125000 : route === 'datasets/import' ? 55000 : 12000),
     });
     const body = await upstream.json();
     if (isLogin && upstream.ok) {

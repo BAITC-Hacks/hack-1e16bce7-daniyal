@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -13,8 +14,10 @@ from app.api.catalog import router as catalog_router
 from app.api.completion import router as completion_router
 from app.api.datasets import router as datasets_router
 from app.api.upload_limit import ImportBodyLimit
+from app.api.recommendations import router as recommendation_router
 from app.config import Settings
 from app.infrastructure.database import Database
+from app.infrastructure.explanations import explanation_provider
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -25,6 +28,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         config.validate_auth()
         database = Database(config.database_url)
         application.state.database = database
+        application.state.explanations = explanation_provider()
+        application.state.inference_slot = asyncio.Semaphore(1)
         try:
             yield
         finally:
@@ -58,6 +63,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(completion_router)
     application.include_router(datasets_router)
     application.add_middleware(ImportBodyLimit)
+    application.include_router(recommendation_router)
     return application
 
 

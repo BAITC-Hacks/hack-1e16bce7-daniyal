@@ -31,6 +31,8 @@ Readiness измеряется в процентах 0–100; уровни на�
 | GET `employees/{id}/skills` | Реальный `{employee_id, items: SkillResponse[]}`; level → current_level, required_level=null; требования отдельно из trajectory |
 | GET `employees/{id}/trajectory` | `Trajectory`: current_grade, target_grade/target_role (nullable), упорядоченный grades[], career_readiness, requirements: Skill[] |
 | POST `employees/{id}/recommendations` | `{language: "ru"}` → `Recommendation[]`, 0–3, в порядке Python engine |
+| GET `employees` | `{employees: [...]}` для `/ai-recommendations`; сотрудник видит себя, HR — до 500 профилей |
+| POST `recommendations` | `{employee_id, locale: "ru"\|"kk"\|"en"}` → AI-подбор с `explanation_source` и `fallback_reason`; сотрудник запрашивает только свой профиль, HR — любой |
 | GET `events/{id}` | `Event`: event_id, title, description, type, duration_hours (optional/nullable), develops_skills[] |
 | GET `employees/{id}/activities?limit=50&offset=0` | Реальный `{items, total, limit, offset}`; event_title → title; кнопки страниц в UI |
 | POST `employees/{id}/activities/{event_id}/complete` | `{}` → `Completion` с before/after, already_completed и changes[] |

@@ -43,6 +43,8 @@ after(async () => {
 test('proxy restricts routes and refuses business requests without a session', async () => {
   assert.equal((await request('health')).status, 200);
   assert.equal((await request('employees/JURY-42')).status, 401);
+  assert.equal((await request('employees')).status, 401);
+  assert.equal((await request('recommendations', post({ employee_id: 'JURY-42', locale: 'ru' }))).status, 401);
   assert.equal((await request('admin/secrets')).status, 404);
   assert.equal((await request('employees/JURY-42/unknown')).status, 404);
   assert.equal((await request('auth/demo/employee', { ...post({}), headers: { origin: 'https://other.example', 'Content-Type': 'application/json' } })).status, 403);
@@ -81,6 +83,24 @@ test('HR analytics and multipart import preserve responses and validation errors
   const imported = await request('datasets/import', { method: 'POST', headers: { origin, cookie }, body: form });
   assert.equal(imported.status, 200);
   assert.equal((await imported.json()).history_records, 2743);
+});
+
+test('AI recommendations use the shared authenticated proxy and validate the request', async () => {
+  const cookie = await login();
+  const employees = await request('employees', { headers: { cookie } });
+  assert.equal(employees.status, 200);
+  assert.equal((await employees.json()).employees[0].employee_id, 'JURY-42');
+  const response = await request('recommendations', post({ employee_id: 'JURY-42', locale: 'kk' }, cookie));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(await response.json(), { employee_id: 'JURY-42', locale: 'kk', explanation_source: 'ollama', fallback_reason: null, recommendations: [] });
+  assert.equal((await request('recommendations', post({ employee_id: 'another-id', locale: 'ru' }, cookie))).status, 403);
+  assert.equal((await request('recommendations', post({ employee_id: 'JURY-42', locale: 'xx' }, cookie))).status, 400);
+  assert.equal((await request('recommendations', { ...post({}, cookie), body: '{' })).status, 400);
+  assert.equal((await request('recommendations', post({ employee_id: 'JURY-42', locale: 'ru', extra: 'x'.repeat(4096) }, cookie))).status, 413);
+  const crossOrigin = post({ employee_id: 'JURY-42', locale: 'ru' }, cookie);
+  crossOrigin.headers.origin = 'https://other.example';
+  assert.equal((await request('recommendations', crossOrigin)).status, 403);
 });
 
 test('unreachable upstream produces an explicit 503 without connection details', async () => {

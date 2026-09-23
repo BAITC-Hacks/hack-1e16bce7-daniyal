@@ -84,6 +84,7 @@ const employeeMenu: { href: string; label: string; icon: IconName }[] = [
   { href: '/', label: 'Dashboard', icon: 'dashboard' },
   { href: '/career', label: 'My Career', icon: 'path' },
   { href: '/recommendations', label: 'Recommendations', icon: 'spark' },
+  { href: '/ai-recommendations', label: 'AI-подбор', icon: 'spark' },
   { href: '/activities', label: 'Activities', icon: 'activity' },
   { href: '/history', label: 'History', icon: 'history' },
 ];
@@ -93,6 +94,7 @@ const hrMenu: typeof employeeMenu = [
   { href: '/hr/skill-gaps', label: 'Skill Gaps', icon: 'chart' },
   { href: '/hr/activities', label: 'Activities', icon: 'activity' },
   { href: '/hr/import', label: 'Data Import', icon: 'upload' },
+  { href: '/ai-recommendations', label: 'AI-подбор', icon: 'spark' },
 ];
 
 export function Workspace({ hr = false, children }: { hr?: boolean; children: ReactNode }) {

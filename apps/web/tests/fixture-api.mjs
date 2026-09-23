@@ -29,6 +29,12 @@ export function fixtureApi() {
     const employeeId = path.startsWith('employees/') ? path.split('/')[1] : user.employee_id || 'JURY-42';
     if (user.role === 'employee' && employeeId !== user.employee_id) return send({ detail: 'Forbidden' }, 403);
     const employee = { employee_id: employeeId, full_name: 'Айдана Садыкова', role: 'Backend Engineer', grade: 'Middle', tenure_months: 36, career_readiness: completed ? 76 : 68, department: 'Разработка' };
+    if (path === 'employees') return send({ employees: [employee] });
+    if (path === 'recommendations') {
+      const body = JSON.parse(raw);
+      if (user.role === 'employee' && body.employee_id !== user.employee_id) return send({ detail: 'Forbidden' }, 403);
+      return send({ employee_id: body.employee_id, locale: body.locale, explanation_source: 'ollama', fallback_reason: null, recommendations: [] });
+    }
     const skill = { skill_id: 'SK_SYSTEM_DESIGN', name: 'System Design', current_level: completed ? 3 : 2, required_level: 4, critical: true };
     if (/^employees\/[^/]+$/.test(path)) return send(employee);
     if (path.endsWith('/skills')) return send({ employee_id: employeeId, items: [{ skill_id: skill.skill_id, name: skill.name, level: skill.current_level, assessed_level: 2, type: 'hard', category: 'Engineering', description: 'Architecture' }] });

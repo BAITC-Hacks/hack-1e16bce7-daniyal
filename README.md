@@ -11,6 +11,9 @@ PostgreSQL + SQLAlchemy, Alembic и Docker Compose.
   деталей активности, завершения с результатом и истории участия.
 - `/hr` — экраны KPI, gaps, статистики активностей, сотрудников с поиском/фильтрами,
   просмотра профиля и загрузки исходного/добавочного датасета.
+- `/ai-recommendations` — отдельный подбор обучения из PostgreSQL с объяснениями
+  Qwen3/Ollama или OpenAI и fallback на трёх языках. Доступен после демо-входа:
+  сотруднику — свой профиль, HR — список сотрудников.
 - Demo-вход, HttpOnly-сессия, allowlist web-прокси; загрузка, пустые состояния,
   ошибки и повтор запросов. В браузере нет расчётов scoring/readiness или локальной БД.
 - Доменные модели, расчёт роста навыков и автономный AI-слой: gaps/readiness,
@@ -37,6 +40,8 @@ Telegram-бот: [запуск и команды](apps/bot/README.md). Отде�
 
 ## Быстрый запуск
 
+Локальная модель на GPU и страница рекомендаций: [инструкция](docs/local-llm.md).
+
 Нужен запущенный Docker Desktop / Docker Engine с Compose:
 
 ```sh
@@ -48,6 +53,7 @@ docker compose up --build -d --wait
 
 - Приложение сотрудника: http://localhost:3000
 - HR Dashboard: http://localhost:3000/hr
+- AI-подбор обучения: http://localhost:3000/ai-recommendations
 - OpenAPI: http://localhost:8000/docs
 - API: http://localhost:8000/api/v1/health
 - Готовность API + PostgreSQL: http://localhost:8000/api/v1/ready
