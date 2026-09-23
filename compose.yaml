@@ -25,7 +25,7 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-openai}
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
-      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-90}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-6}
     ports:
       - "${API_BIND_HOST:-127.0.0.1}:8000:8000"
     depends_on:
@@ -44,7 +44,7 @@ services:
     environment:
       OLLAMA_NUM_PARALLEL: 1
       OLLAMA_MAX_LOADED_MODELS: 1
-      OLLAMA_KEEP_ALIVE: 30m
+      OLLAMA_KEEP_ALIVE: 24h
       OLLAMA_CONTEXT_LENGTH: 8192
     volumes:
       - ollama_data:/root/.ollama

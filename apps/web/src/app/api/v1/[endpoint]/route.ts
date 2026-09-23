@@ -41,7 +41,7 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
     const response = await fetch(`${base}/api/v1/recommendations`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ employee_id: body.employee_id, locale: body.locale }),
-      cache: 'no-store', signal: AbortSignal.timeout(125000),
+      cache: 'no-store', signal: AbortSignal.timeout(9500),
     });
     return NextResponse.json(await response.json(), {
       status: response.status, headers: { 'Cache-Control': 'no-store' },

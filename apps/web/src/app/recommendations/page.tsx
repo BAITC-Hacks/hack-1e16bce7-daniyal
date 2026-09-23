@@ -52,7 +52,7 @@ export default function Recommendations() {
     try {
       const response = await fetch('/api/v1/recommendations', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employee_id: employeeId, locale }), signal: AbortSignal.timeout(130000),
+        body: JSON.stringify({ employee_id: employeeId, locale }), signal: AbortSignal.timeout(10000),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Не удалось получить рекомендации.');
@@ -82,7 +82,7 @@ export default function Recommendations() {
       </select></label>
       <button className="ai-button" disabled={loading || busy || !employeeId}>{busy ? 'Готовим объяснения…' : 'Подобрать обучение'}</button>
     </form>
-    {busy && <p className="ai-notice" role="status">Модель обрабатывает рекомендации. Первый ответ может занять до полутора минут.</p>}
+    {busy && <p className="ai-notice" role="status">Готовим рекомендации. Если AI задержится, покажем объяснения по правилам.</p>}
     {error && <div className="ai-error" role="alert"><p>{error}</p>{!employees.length && <button className="ai-button" onClick={() => setReload(v => v + 1)}>Повторить загрузку</button>}</div>}
     {!loading && !error && !employees.length && <p className="ai-notice">Сначала загрузите датасет сотрудников в базу.</p>}
     {result && <section className="ai-results" aria-label="Результаты подбора" aria-live="polite">
