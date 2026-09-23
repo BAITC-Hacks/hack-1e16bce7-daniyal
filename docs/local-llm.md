@@ -63,3 +63,15 @@ curl -sS http://127.0.0.1:8000/api/v1/recommendations \
 
 Документация: [Ollama Docker](https://docs.ollama.com/docker),
 [Chat API](https://docs.ollama.com/api/chat), [Qwen3 8B](https://ollama.com/library/qwen3:8b).
+
+## Проверено на Brev, 2026-09-23
+
+- L40S, Ollama 0.34.3, `qwen3:8b`, ID модели `500a1f067a9f`, `100% GPU`.
+- 84 теста API пройдены; один отдельный PostgreSQL-тест пропущен без TEST_DATABASE_URL.
+  Контексты и ранжирование из БД совпали с исходным датасетом для всех 200 сотрудников.
+- Production-сборка Next.js и TypeScript прошли локально и на сервере.
+- Настоящие запросы через web-прокси для RU/KK/EN вернули по три рекомендации
+  с `explanation_source=ollama` и без fallback. Холодный запуск — 69 с,
+  повторные запросы — 4–5 с; это замеры одного профиля, не гарантия задержки.
+- Проверка в Chrome: 200 профилей, нажатие кнопки, три карточки, отметка AI,
+  нет ошибок JavaScript. На ширине 390 px нет горизонтального переполнения.
