@@ -12,7 +12,7 @@ class RecommendationEngine(Protocol):
 class ExplanationProvider(Protocol):
     """Explain facts only; cannot alter scores, gains or selection.
 
-    Return text keyed by event_id. The future application service validates IDs
+    Return text keyed by event_id. RecommendationService validates IDs
     and joins explanations to the original ranked facts.
     """
 
