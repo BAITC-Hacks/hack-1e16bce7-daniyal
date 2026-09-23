@@ -68,6 +68,7 @@ export default function Home() {
     <main className="employee-shell">
       <header className="employee-header">
         <Link href="/" className="brand">CAREER QUEST</Link>
+        <Link href="/recommendations" className="hr-link">Подобрать обучение</Link>
         <Link href="/hr" className="hr-link">Для HR ↗</Link>
       </header>
 

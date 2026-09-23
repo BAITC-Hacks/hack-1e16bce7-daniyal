@@ -27,6 +27,8 @@ Telegram-бот: [запуск и команды](apps/bot/README.md). Отде�
 
 ## Быстрый запуск
 
+Локальная модель на GPU и страница рекомендаций: [инструкция](docs/local-llm.md).
+
 Нужен запущенный Docker Desktop / Docker Engine с Compose:
 
 ```sh
