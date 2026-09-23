@@ -4,7 +4,7 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 
 class Base(DeclarativeBase):
-    """Future persistence models register here for Alembic."""
+    """Shared metadata for persistence and Alembic."""
 
 
 class Database:
