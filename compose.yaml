@@ -17,6 +17,9 @@ services:
   api:
     build: ./apps/api
     environment:
+      DEMO_AUTH_ENABLED: ${DEMO_AUTH_ENABLED:-false}
+      DEMO_HR_PASSWORD: ${DEMO_HR_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-career_quest}:${POSTGRES_PASSWORD:-career_quest_dev}@db:5432/${POSTGRES_DB:-career_quest}
     ports:
       - "${API_BIND_HOST:-127.0.0.1}:8000:8000"

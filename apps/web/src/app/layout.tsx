@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import './workspace.css';
+import { SessionProvider } from '../components/workspace';
 
 export const metadata: Metadata = {
   title: 'Career Quest · Ваш путь развития',
@@ -14,5 +16,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="ru"><body>{children}</body></html>;
+  return <html lang="ru"><body><SessionProvider>{children}</SessionProvider></body></html>;
 }
