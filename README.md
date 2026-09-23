@@ -136,4 +136,5 @@ apps/api/tests/           Pytest
 ```
 
 Подробнее: [архитектура](docs/architecture.md), [этапы](docs/roadmap.md).
+Работа команды: [распределение задач между тремя участниками](docs/team-tasks.md).
 Результаты проверок и ограничения: [verification](docs/verification.md).
