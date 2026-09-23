@@ -23,16 +23,18 @@ flowchart LR
 ## Backend
 
 - `api`: маршруты и внешние Pydantic-контракты. Не содержит scoring и SQL.
-- `application`: будущие сценарии и Protocol-интерфейсы. Координирует БД,
+- `application`: транзакционный импорт датасета, его Pydantic-контракты и Protocol-интерфейсы. Координирует БД,
   чистую доменную логику и провайдер объяснений.
 - `domain`: dataclass-контракты и чистые функции, без FastAPI, SQLAlchemy и сети.
-- `infrastructure`: SQLAlchemy engine/session factory и будущие адаптеры.
+- `infrastructure`: SQLAlchemy engine/session factory, ORM-модели и загрузчик JSON/CSV.
 - `auth`: роли `employee` / `hr`; JWT-проверка и разграничение доступа пока отсутствуют.
 
 SQLAlchemy engine создаётся в lifespan API и освобождается при остановке.
 Синхронные DB-проверки выполняются в sync-маршруте FastAPI. Для будущих бизнес-операций
 использовать отдельную session на запрос/операцию и явную транзакцию.
-Alembic использует общую metadata. Бизнес-таблицы появятся после изучения датасета.
+Alembic использует общую metadata; `0001_dataset` создаёт бизнес-таблицы.
+Импорт запускается через CLI в отдельной транзакции с PostgreSQL advisory lock.
+Правила восстановления навыков и повторного импорта: [backend-data](backend-data.md).
 
 ## Контракты
 
