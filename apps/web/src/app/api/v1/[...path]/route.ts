@@ -75,7 +75,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     const upstream = await fetch(`${base}/api/v1/${path.map(encodeURIComponent).join('/')}${request.nextUrl.search}`, {
       method: request.method, headers: upstreamHeaders,
       body: payload,
-      cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(route === 'recommendations' ? 125000 : route === 'datasets/import' ? 55000 : 12000),
+      cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(route === 'recommendations' ? 9500 : route === 'datasets/import' ? 55000 : 12000),
     });
     const body = await upstream.json();
     if (isLogin && upstream.ok) {

@@ -76,3 +76,16 @@ def test_disabled_and_empty_do_not_call_model(context):
     assert invoke(context, forbidden, llm_enabled=False).fallback_reason == "disabled"
     assert invoke(replace(context, recommendations=()), forbidden).fallback_reason == "empty"
     assert isinstance(explanation_provider(ExplanationSettings(_env_file=None, llm_provider="ollama")), OllamaExplanationProvider)
+
+
+def test_slow_model_is_cancelled_and_returns_recommendations(context):
+    cancelled = []
+    async def slow(request):
+        try:
+            await asyncio.sleep(10)
+        finally:
+            cancelled.append(True)
+    result = invoke(context, slow, ollama_timeout_seconds=0.02)
+    assert cancelled == [True]
+    assert result.source == "template" and result.fallback_reason == "timeout"
+    assert result.texts["EV_010"]

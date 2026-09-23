@@ -24,7 +24,7 @@ class ExplanationSettings(BaseSettings):
     llm_provider: Literal["openai", "ollama"] = "openai"
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "qwen3:8b"
-    ollama_timeout_seconds: float = Field(default=90.0, gt=0, le=120)
+    ollama_timeout_seconds: float = Field(default=6.0, gt=0, le=7)
 
 
 class Segment(BaseModel):
@@ -161,6 +161,16 @@ class OllamaExplanationProvider:
         self.settings = settings or ExplanationSettings()
         self.client = client
 
+    async def warmup(self) -> None:
+        """Load weights in the background; user requests keep their short deadline."""
+        try:
+            async with httpx.AsyncClient(timeout=120) as client:
+                response = await client.post(self.settings.ollama_base_url.rstrip("/") + "/api/generate",
+                    json={"model": self.settings.ollama_model, "keep_alive": "24h", "stream": False})
+                response.raise_for_status()
+        except httpx.HTTPError:
+            logger.warning("Local model warmup unavailable; requests will use bounded fallback")
+
     async def explain(self, context: ExplanationContext) -> dict[str, str]:
         return (await self.explain_with_metadata(context)).texts
 
@@ -173,7 +183,7 @@ class OllamaExplanationProvider:
             "model": self.settings.ollama_model,
             "stream": False,
             "think": False,
-            "keep_alive": "30m",
+            "keep_alive": "24h",
             "format": ExplanationResponse.model_json_schema(),
             "options": {"temperature": 0, "num_ctx": 8192, "num_predict": 3000},
             "messages": [
