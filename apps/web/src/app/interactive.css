@@ -9,9 +9,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 input, select, textarea { border: 1px solid #ccd8d2; border-radius: 9px; padding: 10px 12px; background: #fff; color: #203d32; min-width: 0; font: inherit; }
 input::placeholder, textarea::placeholder { color: #64786f; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
-.section-nav a[aria-current=page] { color: #00745c; font-weight: 700; }
+.section-nav a[aria-current=page] { color: #00805f; font-weight: 500; }
 .cq-hero { min-height: 310px; gap: 60px; justify-content: space-between; }
-.cq-hero h1 { margin-top: 0; font-size: clamp(32px, 4vw, 54px); letter-spacing: -.03em; }
+.cq-hero h1 { margin-top: 0; font-size: clamp(40px, 5vw, 56px); letter-spacing: -.03em; font-weight: 700; }
 .hero-summary { display: flex; flex-direction: column; gap: 16px; flex: 0 0 240px; color: #d3f7e8; font-size: 14px; }
 .hero-summary strong { font-size: 72px; line-height: 1; font-weight: 600; letter-spacing: -.03em; color: #fff; font-variant-numeric: tabular-nums; }
 progress { width: 100%; max-width: 200px; height: 8px; border: 0; border-radius: 8px; overflow: hidden; background: #e2eee8; accent-color: #008f72; }
