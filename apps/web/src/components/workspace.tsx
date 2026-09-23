@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, type ReactNode, type FormEvent } from 'react';
 import { api, jsonPost, message } from '../lib/api';
-import type { User } from '../lib/contracts';
+import type { User, Page } from '../lib/contracts';
 
 const Session = createContext<{ user: User | null; setUser: (user: User | null) => void; loading: boolean; error: string; retry: () => void } | null>(null);
 
@@ -40,6 +41,27 @@ export function Loading({ text = 'Загружаем данные…' }: { text?
 
 function Login({ hr }: { hr: boolean }) {
   const { setUser } = useSession();
+  const router = useRouter();
+  const [employees, setEmployees] = useState<{ employee_id: string; full_name: string; role: string; grade: string }[]>([]);
+  const [listError, setListError] = useState('');
+  useEffect(() => {
+    const controller = new AbortController();
+    async function load() {
+      try {
+        const all: typeof employees = [];
+        let offset = 0;
+        while (!controller.signal.aborted) {
+          const page = await api<Page<(typeof employees)[number]>>(`auth/demo/employees?limit=100&offset=${offset}`, { signal: controller.signal });
+          all.push(...page.items);
+          offset += page.items.length;
+          if (offset >= page.total || !page.items.length) break;
+        }
+        if (!controller.signal.aborted) setEmployees(all);
+      } catch (error) { if (!controller.signal.aborted) setListError(message(error)); }
+    }
+    void load();
+    return () => controller.abort();
+  }, []);
   const [role, setRole] = useState<'employee' | 'hr'>(hr ? 'hr' : 'employee');
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
@@ -48,11 +70,11 @@ function Login({ hr }: { hr: boolean }) {
   async function submit(event: FormEvent) {
     event.preventDefault(); if (busy) return;
     setBusy(true); setError('');
-    try { const result = await api<{ user: User }>(`auth/demo/${role}`, jsonPost(role === 'employee' ? { employee_id: employeeId.trim() } : { password })); setPassword(''); setUser(result.user); }
+    try { const result = await api<{ user: User }>(`auth/demo/${role}`, jsonPost(role === 'employee' ? { employee_id: employeeId.trim() } : { password })); setPassword(''); setUser(result.user); router.push(result.user.role === 'hr' ? '/hr' : '/'); }
     catch (error) { setError(message(error)); }
     finally { setBusy(false); }
   }
-  return <section className="cq-login surface-card"><span className="cq-kicker">ДЕМО-ДОСТУП</span><h1>Ваш следующий<br />карьерный шаг.</h1><p className="cq-muted">Войдите, чтобы увидеть траекторию развития или обзор команды.</p><form onSubmit={submit} className="cq-form"><label>Роль<select value={role} disabled={busy} onChange={event => { setRole(event.target.value as 'employee' | 'hr'); setPassword(''); setError(''); }}><option value="employee">Сотрудник</option><option value="hr">HR-специалист</option></select></label>{role === 'employee' && <label>ID сотрудника<input required maxLength={200} autoComplete="username" value={employeeId} disabled={busy} onChange={event => setEmployeeId(event.target.value)} placeholder="ID из загруженного датасета" /></label>}{role === 'hr' && <label>Пароль HR<input type="password" required maxLength={1024} autoComplete="current-password" disabled={busy} value={password} onChange={event => setPassword(event.target.value)} /></label>}{error && <ErrorNotice error={error} />}<button className="primary-button" disabled={busy || (role === 'employee' ? !employeeId.trim() : !password)}>{busy ? 'Входим…' : 'Войти →'}</button></form><p className="cq-caption">Демо-вход предназначен для синтетических профилей хакатона.</p></section>;
+  return <section className="cq-login surface-card"><span className="cq-kicker">ДЕМО-ДОСТУП</span><h1>Ваш следующий<br />карьерный шаг.</h1><p className="cq-muted">Войдите, чтобы увидеть траекторию развития или обзор команды.</p><form onSubmit={submit} className="cq-form"><div className="cq-section-heading" aria-label="Роль для входа">{(['employee', 'hr'] as const).map(value => <button type="button" key={value} className={role === value ? 'primary-button' : 'outline-button'} aria-pressed={role === value} disabled={busy} onClick={() => { setRole(value); setPassword(''); setError(''); }}>{value === 'employee' ? 'Сотрудник' : 'HR'}</button>)}</div>{role === 'employee' && <label>Сотрудник<input list="demo-employees" required maxLength={200} autoComplete="username" value={employeeId} disabled={busy} onChange={event => setEmployeeId(event.target.value)} placeholder="Выберите сотрудника или введите ID" /><datalist id="demo-employees">{employees.map(employee => <option key={employee.employee_id} value={employee.employee_id}>{employee.full_name} · {employee.role} · {employee.grade}</option>)}</datalist>{listError && <span className="cq-caption">Список недоступен. Можно ввести ID вручную.</span>}</label>}{role === 'hr' && <label>Пароль HR<input type="password" required maxLength={1024} autoComplete="current-password" disabled={busy} value={password} onChange={event => setPassword(event.target.value)} /></label>}{error && <ErrorNotice error={error} />}<button className="primary-button" disabled={busy || (role === 'employee' ? !employeeId.trim() : !password)}>{busy ? 'Входим…' : 'Войти →'}</button></form><p className="cq-caption">Демо-вход предназначен для синтетических профилей хакатона.</p></section>;
 }
 
 export function Workspace({ hr = false, children }: { hr?: boolean; children: ReactNode }) {

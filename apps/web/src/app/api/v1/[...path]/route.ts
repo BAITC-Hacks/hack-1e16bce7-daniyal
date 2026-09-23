@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const cookieName = 'cq_session';
 const id = '[^/]+';
-const getRoutes = [ /^health$/, /^ready$/, /^auth\/me$/, new RegExp(`^employees/${id}(?:/(?:skills|trajectory|activities))?$`), /^events$/, new RegExp(`^events/${id}$`), /^hr\/(?:dashboard|skill-gaps|employees|activity-stats|recommendation-coverage)$/ ];
+const getRoutes = [ /^health$/, /^ready$/, /^auth\/me$/, /^auth\/demo\/employees$/, new RegExp(`^employees/${id}(?:/(?:skills|trajectory|activities))?$`), /^events$/, new RegExp(`^events/${id}$`), /^hr\/(?:dashboard|skill-gaps|employees|activity-stats|recommendation-coverage)$/ ];
 const postRoutes = [ /^auth\/demo\/(?:employee|hr)$/, /^datasets\/import$/, new RegExp(`^employees/${id}/recommendations$`), new RegExp(`^employees/${id}/activities/${id}/complete$`) ];
 const headers = { 'Cache-Control': 'no-store' };
 
@@ -31,7 +31,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   if (!allowed.some(pattern => pattern.test(route))) return NextResponse.json({ detail: 'Not found' }, { status: 404, headers });
   const token = request.cookies.get(cookieName)?.value;
   const isLogin = route === 'auth/demo/employee' || route === 'auth/demo/hr';
-  if (!['health', 'ready'].includes(route) && !isLogin && !token) return NextResponse.json({ detail: 'Unauthorized' }, { status: 401, headers });
+  if (!['health', 'ready', 'auth/demo/employees'].includes(route) && !isLogin && !token) return NextResponse.json({ detail: 'Unauthorized' }, { status: 401, headers });
   try {
     const upstreamHeaders = new Headers();
     if (token) upstreamHeaders.set('Authorization', `Bearer ${token}`);
