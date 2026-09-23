@@ -11,7 +11,6 @@ dist/
 data/
 *.sqlite3
 .next/
-.expo/
 *.tsbuildinfo
 .ruff_cache/
 coverage/

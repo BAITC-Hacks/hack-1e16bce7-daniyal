@@ -2,13 +2,14 @@
 
 ## Границы
 
-Один репозиторий, два клиента и модульный FastAPI backend. PostgreSQL — единый источник
+Один репозиторий, React веб-приложение с экранами сотрудника и HR и модульный FastAPI backend. PostgreSQL — единый источник
 сохраняемых данных. Нет микросервисов, Kubernetes, vector DB, ML/RAG.
 
 ```mermaid
 flowchart LR
-    Mobile[React Native / Expo] --> API[FastAPI]
-    HR[Next.js HR Dashboard] --> API
+    Mobile[React в мобильном браузере /] --> Web[Next.js web-прокси]
+    HR[React HR Dashboard /hr] --> Web
+    Web --> API[FastAPI]
     API --> Services[Прикладные сервисы]
     Services --> Engine[Python deterministic scoring]
     Services --> DB[(PostgreSQL / SQLAlchemy)]
@@ -17,7 +18,7 @@ flowchart LR
 ```
 
 Диаграмма показывает целевую архитектуру. В каркасе доступны system-endpoint'ы,
-соединение с БД, расчёт навыков и интерфейсы; прикладной сценарий ещё не реализован.
+соединение с БД, расчёт навыков и интерфейсы. На / доступно пробное задание с localStorage; серверный сценарий прохождения ещё не реализован. Локальный результат не является оценкой сотрудника.
 
 ## Backend
 
@@ -67,7 +68,7 @@ reason_codes. Выбор и баллы определяет только Python.
 
 ## Запуск и дальнейший доступ
 
-Compose поднимает БД → API → web с healthcheck-зависимостями. Mobile запускается отдельно.
+Compose поднимает БД → API → web с healthcheck-зависимостями. Сотрудник открывает / в браузере телефона, HR — /hr. Web слушает порт 3000 в локальной сети; API и БД остаются на localhost. Отдельного native-клиента нет.
 База хранится в volume. Healthchecks после старта показывают состояние, но сами не
 перезапускают зависимые сервисы. Клиенты показывают недоступность вместо бесконечного ожидания.
 
@@ -77,4 +78,4 @@ backend для каждого бизнес-endpoint; выбор роли в ин
 отдельный этап; текущий Compose предназначен для локальной разработки и demo.
 
 Референсы: [Next.js](https://nextjs.org/docs/app/getting-started/installation),
-[Expo](https://docs.expo.dev/get-started/create-a-project/).
+[React](https://react.dev/).
