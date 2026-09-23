@@ -30,7 +30,7 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
       OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-6}
     ports:
-      - "${API_BIND_HOST:-127.0.0.1}:8000:8000"
+      - "${API_BIND_HOST:-127.0.0.1}:${API_PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -61,7 +61,7 @@ services:
     environment:
       API_URL: http://api:8000
     ports:
-      - "${WEB_BIND_HOST:-0.0.0.0}:3000:3000"
+      - "${WEB_BIND_HOST:-0.0.0.0}:${WEB_PORT:-3000}:3000"
     depends_on:
       api:
         condition: service_healthy

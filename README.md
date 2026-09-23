@@ -145,32 +145,34 @@ LLM отвечает только за оформление объяснений
 
 Локальная модель на GPU и страница рекомендаций: [инструкция](docs/local-llm.md).
 
-Нужен запущенный Docker Desktop / Docker Engine с Compose. Команды выполняются
-из корня репозитория.
-
-1. Создайте файл настроек:
+Нужны Python 3.10+ и запущенный Docker Desktop / Docker Engine с Compose.
+Из корня репозитория выполните одну команду (Windows / Linux / macOS):
 
 ```sh
-cp .env.example .env
+python scripts/start.py
 ```
 
-В PowerShell вместо `cp` можно использовать `Copy-Item .env.example .env`.
+На Linux команда Python может называться `python3`. Скрипт создаёт `.env`,
+включает демо-вход, генерирует пароль HR и JWT-секрет, собирает контейнеры,
+применяет миграции, импортирует датасет и ждёт готовности приложения.
+Пароль для входа HR — значение `DEMO_HR_PASSWORD` в `.env`; в логи он не выводится.
+Существующие настройки и пароли сохраняются. Повторный запуск не сбрасывает навыки
+и историю; изменённый исходный датасет отклоняется без перезаписи БД.
 
-2. В `.env` установите `DEMO_AUTH_ENABLED=true`, задайте свой непустой
-   `DEMO_HR_PASSWORD` и случайный `JWT_SECRET` длиной не менее 32 байт.
-   Для проверки без AI оставьте `OPENAI_API_KEY` пустым — объяснения будут шаблонными.
-
-3. Запустите стек, примените миграции и загрузите исходные данные:
+На NVIDIA-сервере с настроенным Container Toolkit запуск с загрузкой Qwen:
 
 ```sh
-docker compose up --build -d --wait
-docker compose exec api alembic upgrade head
-docker compose cp dataset api:/tmp/career-quest-dataset
-docker compose exec api python -m app.import_dataset /tmp/career-quest-dataset
+python3 scripts/start.py --gpu
 ```
 
-4. Откройте приложение и выберите демо-профиль сотрудника либо роль HR
-   с паролем, заданным на шаге 2.
+Этот вариант также запускает Ollama и скачивает модель из `OLLAMA_MODEL`.
+Без GPU и ключа OpenAI приложение работает с явно обозначенными шаблонными
+объяснениями. Qwen сейчас подключён к `/ai-recommendations`; основной кабинет
+пока использует OpenAI либо шаблоны.
+Проверка полного сценария в браузере: [сценарий жюри](docs/jury-check.md).
+
+Откройте приложение и выберите демо-профиль сотрудника либо роль HR
+с паролем из созданного `.env`.
 
 - Приложение сотрудника: http://localhost:3000
 - HR Dashboard: http://localhost:3000/hr
@@ -180,8 +182,8 @@ docker compose exec api python -m app.import_dataset /tmp/career-quest-dataset
 - Готовность API + PostgreSQL: http://localhost:8000/api/v1/ready
 
 Ключ OpenAI не нужен. Первый запуск скачивает зависимости и образы.
-Демо-вход по умолчанию отключён; шаги выше включают его для проверки решения.
-Web по умолчанию доступен в локальной сети (`WEB_BIND_HOST=0.0.0.0`).
+Скрипт создаёт настройки доступа только с localhost. Для телефона в доверенной
+локальной сети задайте `WEB_BIND_HOST=0.0.0.0` в `.env` и повторите запуск.
 API и PostgreSQL доступны только на localhost; браузер обращается к API через web-прокси.
 PostgreSQL использует порт `55432` (`POSTGRES_PORT`) и сохраняет данные в Docker volume.
 `docker compose down` останавливает стек без удаления данных.
