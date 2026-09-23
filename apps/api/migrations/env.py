@@ -4,7 +4,7 @@ from sqlalchemy import create_engine, pool
 from app.config import Settings
 from app.infrastructure.database import Base
 
-# Import future ORM models here so their tables register in Base.metadata.
+from app.infrastructure import models  # noqa: F401 — register tables for Alembic
 target_metadata = Base.metadata
 url = Settings().database_url
 

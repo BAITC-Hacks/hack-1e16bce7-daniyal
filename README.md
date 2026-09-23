@@ -14,7 +14,8 @@ PostgreSQL + SQLAlchemy, Alembic и Docker Compose.
 - `/hr` — стартовый HR-экран с проверкой готовности API и БД.
 - Доменные модели и расчёт роста навыков реализованы на backend.
 
-Импорт, бизнес-таблицы, вход/JWT, scoring, OpenAI-объяснения и HR-аналитика — следующие этапы.
+Бизнес-таблицы, первая миграция и транзакционный CLI-импорт датасета реализованы.
+Вход/JWT, бизнес-API, добавочный импорт, scoring, OpenAI-объяснения и HR-аналитика — следующие этапы.
 Пробное задание не связано с оценкой сотрудника и не отправляет результаты в БД.
 HR-экран пока публичный и не содержит данных сотрудников.
 
@@ -107,18 +108,30 @@ docker compose config --quiet
 
 ## Миграции
 
-Alembic настроен, но бизнес-таблиц и revisions пока нет.
-Из `apps/api` можно проверить подключение: `../../.venv/bin/alembic current`.
-Будущие SQLAlchemy-модели регистрируются в `Base.metadata` и импортируются в `migrations/env.py`:
+Первая миграция `0001_dataset` создаёт бизнес-таблицы. Из `apps/api`:
 
 ```sh
-../../.venv/bin/alembic revision --autogenerate -m "add domain tables"
-# Проверить сгенерированный файл перед применением.
 ../../.venv/bin/alembic upgrade head
+../../.venv/bin/python -m app.import_dataset ../../dataset --validate-only
+../../.venv/bin/python -m app.import_dataset ../../dataset
 ```
 
-В Docker: `docker compose exec api alembic upgrade head`.
-Миграции применяются явно, а не при каждом старте API.
+Импорт принимает исходные `skills.json`, `employees.json`, `events.json` и
+`activity_history.csv`. Операция атомарна; повтор того же набора возвращает
+`unchanged`, изменённый набор отклоняется без перезаписи прогресса.
+`--validate-only` не требует БД. Подробные правила и ограничения:
+[данные backend](docs/backend-data.md).
+
+В Docker после пересборки API:
+
+```sh
+docker compose up -d --build api
+docker compose exec api alembic upgrade head
+docker compose cp dataset api:/tmp/career-quest-dataset
+docker compose exec api python -m app.import_dataset /tmp/career-quest-dataset
+```
+
+Миграции и импорт применяются явно, а не при каждом старте API.
 
 ## Структура
 
